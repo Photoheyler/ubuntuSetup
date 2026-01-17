@@ -47,6 +47,45 @@ update_system() {
     sudo apt-get upgrade -y
 }
 
+# Install Git
+install_git() {
+    print_status "Installing Git..."
+    
+    if command -v git &> /dev/null; then
+        print_warning "Git is already installed"
+        return
+    fi
+    
+    sudo apt-get install -y git
+    
+    # Configure Git (optional - comment out if not desired)
+    if [[ -z $(git config --global user.name) ]]; then
+        print_status "Git installed. Configure it with:"
+        echo "  git config --global user.name 'Your Name'"
+        echo "  git config --global user.email 'your.email@example.com'"
+    fi
+    
+    print_status "Git installed successfully"
+}
+
+# Install Git LFS
+install_git_lfs() {
+    print_status "Installing Git LFS..."
+    
+    if command -v git-lfs &> /dev/null; then
+        print_warning "Git LFS is already installed"
+        return
+    fi
+    
+    curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+    sudo apt-get install -y git-lfs
+    
+    # Initialize Git LFS
+    git lfs install
+    
+    print_status "Git LFS installed successfully"
+}
+
 # Install Docker
 install_docker() {
     print_status "Installing Docker..."
@@ -149,6 +188,14 @@ verify_installations() {
     print_status "Verifying installations..."
     
     echo ""
+    echo "Git version:"
+    git --version
+    
+    echo ""
+    echo "Git LFS version:"
+    git lfs version || print_warning "Git LFS version check failed"
+    
+    echo ""
     echo "Docker version:"
     docker --version
     
@@ -172,6 +219,8 @@ main() {
     
     check_ubuntu
     update_system
+    install_git
+    install_git_lfs
     install_docker
     install_docker_compose
     install_vscode

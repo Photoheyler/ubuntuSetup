@@ -5,6 +5,8 @@
 INSTALL_DOCKER=true
 INSTALL_DOCKER_COMPOSE=true
 INSTALL_VSCODE=true
+INSTALL_GIT=true
+INSTALL_GIT_LFS=true
 
 # Additional Development Tools
 INSTALL_GIT=true

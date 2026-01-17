@@ -18,6 +18,7 @@ chmod +x setup.sh
 ```
 
 This installs:
+- Git and Git LFS
 - Docker Engine with CLI
 - Docker Compose (standalone)
 - VS Code
@@ -34,6 +35,7 @@ Use `setup.sh` for the essential components:
 ```
 
 **Installs:**
+- Git and Git LFS
 - Docker
 - Docker Compose
 - VS Code
@@ -48,8 +50,8 @@ chmod +x setup-extended.sh
 ```
 
 **Provides a menu to choose:**
-- Core components (Docker, Docker Compose, VS Code)
-- Full installation (Core + Git + Build Tools + Node.js + Python)
+- Core components (Git, Docker, Docker Compose, VS Code)
+- Full installation (Core + Build Tools + Node.js + Python)
 - Custom selection of individual components
 
 ### Option 3: Configuration File
@@ -70,6 +72,7 @@ nano config.sh
 No command-line options. Installs fixed components:
 - Validates Ubuntu installation
 - Updates system packages
+- Installs Git and Git LFS
 - Installs Docker from official repository
 - Installs Docker Compose (latest version)
 - Installs VS Code from Microsoft repository
@@ -115,6 +118,10 @@ newgrp docker
 Check that everything is installed correctly:
 
 ```bash
+# Check Git
+git --version
+git lfs version
+
 # Check Docker
 docker --version
 docker ps
@@ -126,7 +133,7 @@ docker-compose --version
 code --version
 
 # List installed packages
-apt list --installed | grep -E "docker|code"
+apt list --installed | grep -E "git|docker|code"
 ```
 
 ### 3. Test Docker
@@ -143,7 +150,20 @@ Hello from Docker!
 This message shows that your installation appears to be working correctly.
 ```
 
-### 4. Create Docker Compose Project
+### 4. Configure Git
+
+Set your Git identity (if not already configured):
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+
+# Verify configuration
+git config --global user.name
+git config --global user.email
+```
+
+### 5. Create Docker Compose Project
 
 Test Docker Compose with a simple example:
 
@@ -174,11 +194,12 @@ Edit `config.sh` to customize:
 INSTALL_DOCKER=true              # Install Docker Engine
 INSTALL_DOCKER_COMPOSE=true      # Install Docker Compose
 INSTALL_VSCODE=true              # Install Visual Studio Code
+INSTALL_GIT=true                 # Install Git version control
+INSTALL_GIT_LFS=true             # Install Git LFS (Large File Storage)
 ```
 
 ### Development Tools
 ```bash
-INSTALL_GIT=true                 # Git version control
 INSTALL_BUILD_TOOLS=true         # Build essentials (gcc, make, etc.)
 INSTALL_CURL=true                # cURL command-line tool
 INSTALL_WGET=true                # Wget download utility
@@ -288,9 +309,47 @@ docker compose version      # Plugin
 
 Use either one - plugin is newer but standalone is more compatible.
 
+### Git LFS not tracking files
+
+**Problem:** Large files aren't being tracked by Git LFS
+
+**Solution:**
+1. Make sure Git LFS is installed: `git lfs version`
+2. Initialize Git LFS in your repo: `git lfs install`
+3. Specify which files to track:
+   ```bash
+   git lfs track "*.psd"
+   git add .gitattributes
+   git commit -m "Add LFS tracking for large files"
+   ```
+4. Add your large files:
+   ```bash
+   git add yourlargefiles.psd
+   git commit -m "Add large files"
+   ```
+
+### Git LFS installation failed
+
+**Problem:** `command not found: git-lfs`
+
+**Solution:**
+1. Verify the script ran without errors
+2. Check if Git LFS is installed: `which git-lfs`
+3. Reinstall Git LFS manually:
+   ```bash
+   curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+   sudo apt-get install -y git-lfs
+   git lfs install
+   ```
+
 ## Uninstallation
 
 ### Remove Individual Components
+
+**Remove Git:**
+```bash
+sudo apt-get remove -y git git-lfs
+```
 
 **Remove Docker:**
 ```bash
@@ -316,7 +375,10 @@ Remove everything installed by the script:
 
 ```bash
 # Remove all installed packages
-sudo apt-get remove -y docker-ce docker-ce-cli containerd.io code
+sudo apt-get remove -y git git-lfs docker-ce docker-ce-cli containerd.io code
+
+# Remove docker-compose standalone
+sudo rm -f /usr/local/bin/docker-compose
 
 # Remove repositories
 sudo rm -f /etc/apt/sources.list.d/docker.list
@@ -351,6 +413,11 @@ htop
 ```
 
 ## Getting Help
+
+### Git Documentation
+- Official docs: https://git-scm.com/doc
+- Git LFS docs: https://git-lfs.github.com/
+- Git Learning: https://git-scm.com/book/en/v2
 
 ### Docker Documentation
 - Official docs: https://docs.docker.com/

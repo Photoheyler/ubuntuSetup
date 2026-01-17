@@ -4,6 +4,8 @@ Automated setup script for Ubuntu that installs Docker Compose and VS Code with 
 
 ## Features
 
+- ✅ Automatic Git installation
+- ✅ Git LFS (Large File Storage) installation and configuration
 - ✅ Automatic Docker installation from official Docker repository
 - ✅ Docker Compose standalone installation (latest version)
 - ✅ VS Code installation from Microsoft repository
@@ -44,6 +46,11 @@ chmod +x setup.sh
 
 ## What Gets Installed
 
+### Git
+- Git version control system
+- Git LFS (Large File Storage) for managing large binary files
+- Automatically initialized for the current user
+
 ### Docker
 - Docker Engine (latest stable)
 - Docker CLI
@@ -70,8 +77,8 @@ After running the script, you may need to:
    ```
 
 2. **Verify installations**:
-   ```bash
-   docker --version
+   ```bash   git --version
+   git lfs version   docker --version
    docker-compose --version
    code --version
    ```
@@ -92,6 +99,8 @@ After running the script, you may need to:
 
 - `check_ubuntu()` - Validates that the script is running on Ubuntu
 - `update_system()` - Updates all system packages
+- `install_git()` - Installs Git version control
+- `install_git_lfs()` - Installs Git LFS and initializes it
 - `install_docker()` - Installs Docker from official repository
 - `install_docker_compose()` - Installs standalone docker-compose
 - `install_vscode()` - Installs VS Code from Microsoft repository
@@ -136,6 +145,8 @@ Edit `setup.sh` to skip specific components:
 
 ```bash
 # Comment out these lines to skip:
+install_git
+install_git_lfs
 install_docker
 install_docker_compose
 install_vscode
@@ -159,6 +170,19 @@ For issues or questions, please create an issue on the repository.
 ## Manual Installation (Alternative)
 
 If you prefer manual installation, here are the equivalent commands:
+
+### Install Git
+```bash
+sudo apt-get update
+sudo apt-get install -y git
+```
+
+### Install Git LFS
+```bash
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+sudo apt-get install -y git-lfs
+git lfs install
+```
 
 ### Install Docker
 ```bash

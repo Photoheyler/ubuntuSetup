@@ -54,6 +54,24 @@ install_essentials() {
         apt-transport-https
 }
 
+# Install Git LFS
+install_git_lfs() {
+    print_status "Installing Git LFS..."
+    
+    if command -v git-lfs &> /dev/null; then
+        print_warning "Git LFS is already installed"
+        return
+    fi
+    
+    curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+    sudo apt-get install -y git-lfs
+    
+    # Initialize Git LFS
+    git lfs install
+    
+    print_status "Git LFS installed successfully"
+}
+
 # Install Docker
 install_docker() {
     print_status "Installing Docker..."
@@ -155,6 +173,14 @@ verify_installations() {
     print_status "Verifying installations..."
     echo ""
     
+    echo "Git version:"
+    git --version
+    
+    echo ""
+    echo "Git LFS version:"
+    git lfs version || print_warning "Git LFS version check failed"
+    
+    echo ""
     echo "Docker version:"
     docker --version
     
@@ -197,8 +223,8 @@ custom_install() {
     read -p "Install VS Code? (y/n) " -n 1 -r; echo
     [[ $REPLY =~ ^[Yy]$ ]] && INSTALL_VSCODE=1
     
-    read -p "Install Git? (y/n) " -n 1 -r; echo
-    [[ $REPLY =~ ^[Yy]$ ]] && INSTALL_GIT=1
+    read -p "Install Git LFS? (y/n) " -n 1 -r; echo
+    [[ $REPLY =~ ^[Yy]$ ]] && INSTALL_GIT_LFS=1
     
     read -p "Install Node.js? (y/n) " -n 1 -r; echo
     [[ $REPLY =~ ^[Yy]$ ]] && INSTALL_NODEJS=1
@@ -224,6 +250,7 @@ main() {
                 install_docker
                 install_docker_compose
                 install_vscode
+                install_git_lfs
                 configure_docker
                 verify_installations
                 break
@@ -232,6 +259,7 @@ main() {
                 install_docker
                 install_docker_compose
                 install_vscode
+                install_git_lfs
                 install_nodejs
                 install_python_tools
                 configure_docker
@@ -242,7 +270,7 @@ main() {
                 INSTALL_DOCKER=0
                 INSTALL_DOCKER_COMPOSE=0
                 INSTALL_VSCODE=0
-                INSTALL_GIT=0
+                INSTALL_GIT_LFS=0
                 INSTALL_NODEJS=0
                 INSTALL_PYTHON=0
                 
@@ -251,6 +279,7 @@ main() {
                 [[ $INSTALL_DOCKER -eq 1 ]] && install_docker
                 [[ $INSTALL_DOCKER_COMPOSE -eq 1 ]] && install_docker_compose
                 [[ $INSTALL_VSCODE -eq 1 ]] && install_vscode
+                [[ $INSTALL_GIT_LFS -eq 1 ]] && install_git_lfs
                 [[ $INSTALL_NODEJS -eq 1 ]] && install_nodejs
                 [[ $INSTALL_PYTHON -eq 1 ]] && install_python_tools
                 
