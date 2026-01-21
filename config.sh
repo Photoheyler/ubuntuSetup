@@ -8,6 +8,11 @@ INSTALL_VSCODE=true
 INSTALL_GIT=true
 INSTALL_GIT_LFS=true
 
+# NVIDIA GPU Support
+INSTALL_NVIDIA_DRIVERS=false
+INSTALL_CUDA=false
+INSTALL_NVIDIA_DOCKER=true
+
 # Additional Development Tools
 INSTALL_GIT=true
 INSTALL_BUILD_TOOLS=true
@@ -25,6 +30,10 @@ INSTALL_HTOP=true
 INSTALL_NET_TOOLS=true
 INSTALL_VIM=false
 INSTALL_NANO=true
+
+# Applications
+INSTALL_PICOSCOPE=true
+INSTALL_CHROMIUM=true
 
 # Docker Configuration
 DOCKER_ENABLE_DAEMON=true

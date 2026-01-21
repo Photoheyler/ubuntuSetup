@@ -19,6 +19,9 @@ chmod +x setup.sh
 
 This installs:
 - Git and Git LFS
+- NVIDIA GPU Drivers (if GPU detected)
+- CUDA Toolkit (if GPU detected)
+- nvidia-docker (if GPU detected)
 - Docker Engine with CLI
 - Docker Compose (standalone)
 - VS Code
@@ -52,6 +55,7 @@ chmod +x setup-extended.sh
 **Provides a menu to choose:**
 - Core components (Git, Docker, Docker Compose, VS Code)
 - Full installation (Core + Build Tools + Node.js + Python)
+- GPU installation (NVIDIA Drivers + CUDA + nvidia-docker + Core)
 - Custom selection of individual components
 
 ### Option 3: Configuration File
@@ -85,23 +89,32 @@ No command-line options. Installs fixed components:
 
 ### Extended Setup Script (`setup-extended.sh`)
 
-Interactive menu with three options:
+Interactive menu with multiple options:
 
 ```bash
 ./setup-extended.sh
 ```
 
 **Menu Options:**
-- **Option 1**: Core (Docker, Docker Compose, VS Code)
-- **Option 2**: Full (Core + Git + Build Tools + Node.js + Python)
-- **Option 3**: Custom (choose individual components)
-- **Option 4**: Exit
+- **Option 1**: Core (Git, Docker, Docker Compose, VS Code)
+- **Option 2**: Full (Core + Build Tools + Node.js + Python)
+- **Option 3**: GPU (NVIDIA Drivers + CUDA + nvidia-docker + Core)
+- **Option 4**: Custom (choose individual components)
+- **Option 5**: Exit
 
 ## Post-Installation Steps
 
-### 1. Apply Docker Group Changes
+### 1. Reboot (for NVIDIA GPU drivers)
 
-After running the script, log out and log back in:
+If NVIDIA GPU drivers were installed, reboot your system:
+
+```bash
+sudo reboot
+```
+
+### 2. Apply Docker Group Changes
+
+After the reboot (or if no GPU installed), log out and log back in:
 
 ```bash
 exit
@@ -111,6 +124,14 @@ exit
 Or use `newgrp`:
 ```bash
 newgrp docker
+```
+
+### 3. Reload Shell Configuration
+
+If CUDA was installed, reload your shell configuration:
+
+```bash
+source ~/.bashrc
 ```
 
 ### 2. Verify Installations
@@ -136,7 +157,47 @@ code --version
 apt list --installed | grep -E "git|docker|code"
 ```
 
-### 3. Test Docker
+### 4. Verify Installations
+
+Check that everything is installed correctly:
+
+```bash
+# Check Git
+git --version
+git lfs version
+
+# Check NVIDIA GPU (if installed)
+nvidia-smi
+nvcc --version
+nvidia-docker version
+
+# Check Docker
+docker --version
+docker ps
+
+# Check Docker Compose
+docker-compose --version
+
+# Check VS Code
+code --version
+
+# List installed packages
+apt list --installed | grep -E "git|nvidia|docker|code"
+```
+
+### 5. Test NVIDIA GPU with Docker
+
+If NVIDIA GPU is installed, test GPU access in containers:
+
+```bash
+# Test with NVIDIA CUDA image
+docker run --rm --gpus all nvidia/cuda:12.3.0-runtime-ubuntu22.04 nvidia-smi
+
+# Or test with nvidia-docker
+nvidia-docker run --rm nvidia/cuda:12.3.0-runtime-ubuntu22.04 nvidia-smi
+```
+
+### 6. Test Docker
 
 Create a test container:
 
@@ -150,7 +211,7 @@ Hello from Docker!
 This message shows that your installation appears to be working correctly.
 ```
 
-### 4. Configure Git
+### 7. Configure Git
 
 Set your Git identity (if not already configured):
 
@@ -163,7 +224,7 @@ git config --global user.name
 git config --global user.email
 ```
 
-### 5. Create Docker Compose Project
+### 8. Create Docker Compose Project
 
 Test Docker Compose with a simple example:
 
@@ -196,6 +257,13 @@ INSTALL_DOCKER_COMPOSE=true      # Install Docker Compose
 INSTALL_VSCODE=true              # Install Visual Studio Code
 INSTALL_GIT=true                 # Install Git version control
 INSTALL_GIT_LFS=true             # Install Git LFS (Large File Storage)
+```
+
+### NVIDIA GPU Support
+```bash
+INSTALL_NVIDIA_DRIVERS=false     # NVIDIA GPU Drivers (auto-detects GPU)
+INSTALL_CUDA=false               # CUDA Toolkit
+INSTALL_NVIDIA_DOCKER=false      # nvidia-docker for GPU containers
 ```
 
 ### Development Tools
@@ -284,6 +352,82 @@ sudo systemctl status docker
 - VS Code is still installed and can be used with `--no-sandbox`: `code --no-sandbox`
 - Or access via Remote SSH extension
 
+### NVIDIA GPU not detected
+
+**Problem:** NVIDIA drivers skip installation automatically
+
+**Solution:**
+1. Check if NVIDIA GPU is present:
+   ```bash
+   lspci | grep -i nvidia
+   ```
+2. If nothing is returned, your system may not have an NVIDIA GPU
+3. To force installation anyway, manually run:
+   ```bash
+   sudo apt-get install -y nvidia-driver-535
+   ```
+
+### nvidia-smi command not found
+
+**Problem:** `command not found: nvidia-smi` after driver installation
+
+**Solution:**
+1. Reboot your system:
+   ```bash
+   sudo reboot
+   ```
+2. After reboot, verify:
+   ```bash
+   nvidia-smi
+   ```
+3. If still not found, check if drivers are installed:
+   ```bash
+   sudo apt list --installed | grep nvidia
+   ```
+
+### CUDA installation failed
+
+**Problem:** CUDA Toolkit installation fails
+
+**Solution:**
+1. Make sure NVIDIA drivers are installed first:
+   ```bash
+   nvidia-smi
+   ```
+2. Try manual installation:
+   ```bash
+   cd /tmp
+   wget https://developer.download.nvidia.com/compute/cuda/12.3.0/local_installers/cuda_12.3.0_535.104.05_linux.run
+   sudo sh cuda_12.3.0_535.104.05_linux.run --silent --driver --toolkit
+   source ~/.bashrc
+   ```
+3. Verify installation:
+   ```bash
+   nvcc --version
+   ```
+
+### nvidia-docker fails to start containers with GPU
+
+**Problem:** `docker run --gpus all` returns error
+
+**Solution:**
+1. Verify nvidia-docker is installed:
+   ```bash
+   nvidia-docker version
+   ```
+2. Check Docker daemon config:
+   ```bash
+   cat /etc/docker/daemon.json
+   ```
+3. Restart Docker daemon:
+   ```bash
+   sudo systemctl restart docker
+   ```
+4. Test with NVIDIA image:
+   ```bash
+   docker run --rm --gpus all nvidia/cuda:12.3.0-runtime-ubuntu22.04 nvidia-smi
+   ```
+
 ### Network issues during installation
 
 **Problem:** Download fails due to network errors
@@ -363,6 +507,19 @@ sudo rm /etc/apt/sources.list.d/docker.list
 sudo rm /usr/local/bin/docker-compose
 ```
 
+**Remove NVIDIA Software:**
+```bash
+# Remove nvidia-docker
+sudo apt-get remove -y nvidia-docker2
+sudo rm /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# Remove CUDA
+sudo apt-get remove -y cuda
+
+# Remove NVIDIA drivers
+sudo apt-get remove -y nvidia-driver-535
+```
+
 **Remove VS Code:**
 ```bash
 sudo apt-get remove -y code
@@ -375,7 +532,7 @@ Remove everything installed by the script:
 
 ```bash
 # Remove all installed packages
-sudo apt-get remove -y git git-lfs docker-ce docker-ce-cli containerd.io code
+sudo apt-get remove -y git git-lfs nvidia-docker2 cuda nvidia-driver-535 docker-ce docker-ce-cli containerd.io code
 
 # Remove docker-compose standalone
 sudo rm -f /usr/local/bin/docker-compose
@@ -383,6 +540,7 @@ sudo rm -f /usr/local/bin/docker-compose
 # Remove repositories
 sudo rm -f /etc/apt/sources.list.d/docker.list
 sudo rm -f /etc/apt/sources.list.d/vscode.list
+sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
 
 # Remove user from docker group
 sudo deluser $USER docker
@@ -419,9 +577,15 @@ htop
 - Git LFS docs: https://git-lfs.github.com/
 - Git Learning: https://git-scm.com/book/en/v2
 
+### NVIDIA GPU Documentation
+- CUDA Toolkit docs: https://docs.nvidia.com/cuda/
+- nvidia-docker docs: https://github.com/NVIDIA/nvidia-docker
+- NVIDIA Driver docs: https://www.nvidia.com/en-us/drivers/
+
 ### Docker Documentation
 - Official docs: https://docs.docker.com/
 - Compose docs: https://docs.docker.com/compose/
+- GPU support: https://docs.docker.com/compose/gpu-support/
 - Community forum: https://forums.docker.com/
 
 ### VS Code Documentation

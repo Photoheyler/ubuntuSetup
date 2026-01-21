@@ -86,6 +86,143 @@ install_git_lfs() {
     print_status "Git LFS installed successfully"
 }
 
+# Install NVIDIA GPU Drivers
+install_nvidia_drivers() {
+    print_status "Installing NVIDIA GPU Drivers..."
+    
+    # Check if nvidia-smi exists (NVIDIA drivers already installed)
+    if command -v nvidia-smi &> /dev/null; then
+        print_warning "NVIDIA drivers are already installed"
+        nvidia-smi
+        return
+    fi
+    
+    # Check if NVIDIA GPU is present
+    if ! lspci | grep -i nvidia &> /dev/null; then
+        print_warning "No NVIDIA GPU detected. Skipping NVIDIA driver installation."
+        return
+    fi
+    
+    print_status "Detected NVIDIA GPU. Installing drivers..."
+    
+    # Add NVIDIA repository
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
+    sudo add-apt-repository "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /"
+    sudo apt-get update
+    
+    # Install NVIDIA drivers
+    sudo apt-get install -y nvidia-driver-535
+    
+    print_status "NVIDIA drivers installed successfully"
+    print_warning "System reboot may be required for drivers to take effect"
+}
+
+# Install CUDA Toolkit
+install_cuda() {
+    print_status "Installing CUDA Toolkit..."
+    
+    if command -v nvcc &> /dev/null; then
+        print_warning "CUDA Toolkit is already installed"
+        nvcc --version
+        return
+    fi
+    
+    if ! command -v nvidia-smi &> /dev/null; then
+        print_warning "NVIDIA drivers not found. Install drivers first."
+        return
+    fi
+    
+    # Download CUDA installer
+    CUDA_VERSION="12.3"
+    CUDA_INSTALLER="cuda_${CUDA_VERSION}.0_535.104.05_linux.run"
+    
+    print_status "Downloading CUDA ${CUDA_VERSION}..."
+    cd /tmp
+    wget -q https://developer.download.nvidia.com/compute/cuda/${CUDA_VERSION}.0/local_installers/${CUDA_INSTALLER}
+    
+    # Install CUDA (non-interactive)
+    sudo sh ${CUDA_INSTALLER} --silent --driver --toolkit --override
+    
+    # Update PATH
+    echo 'export PATH=/usr/local/cuda/bin:$PATH' >> ~/.bashrc
+    echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+    source ~/.bashrc
+    
+    # Cleanup
+    rm -f ${CUDA_INSTALLER}
+    cd -
+    
+    print_status "CUDA Toolkit installed successfully"
+}
+
+# Install PicoScope
+install_picoscope() {
+    print_status "Installing PicoScope..."
+    
+    if command -v picoscope &> /dev/null; then
+        print_warning "PicoScope is already installed"
+        return
+    fi
+    
+    # Import PicoScope public key
+    print_status "Importing PicoScope repository key..."
+    sudo bash -c 'wget -O- https://labs.picotech.com/Release.gpg.key | gpg --dearmor > /usr/share/keyrings/picotech-archive-keyring.gpg'
+    
+    # Configure repository
+    print_status "Adding PicoScope repository..."
+    sudo bash -c 'echo "deb [signed-by=/usr/share/keyrings/picotech-archive-keyring.gpg] https://labs.picotech.com/picoscope7/debian/ picoscope main" > /etc/apt/sources.list.d/picoscope7.list'
+    
+    # Update and install
+    sudo apt-get update
+    sudo apt-get install -y picoscope
+    
+    print_status "PicoScope installed successfully"
+}
+
+# Install Chromium
+install_chromium() {
+    print_status "Installing Chromium browser..."
+    
+    if command -v chromium-browser &> /dev/null || command -v chromium &> /dev/null; then
+        print_warning "Chromium is already installed"
+        return
+    fi
+    
+    sudo apt-get install -y chromium-browser
+    
+    print_status "Chromium browser installed successfully"
+}
+
+# Install nvidia-docker
+install_nvidia_docker() {
+    print_status "Installing nvidia-docker..."
+    
+    if command -v nvidia-docker &> /dev/null; then
+        print_warning "nvidia-docker is already installed"
+        return
+    fi
+    
+    if ! command -v nvidia-smi &> /dev/null; then
+        print_warning "NVIDIA drivers not found. Install drivers first."
+        return
+    fi
+    
+    # Add NVIDIA Docker repository
+    distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
+        && curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+        && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    
+    sudo apt-get update
+    sudo apt-get install -y nvidia-docker2
+    
+    # Restart Docker daemon
+    sudo systemctl restart docker
+    
+    print_status "nvidia-docker installed successfully"
+}
+
 # Install Docker
 install_docker() {
     print_status "Installing Docker..."
@@ -208,6 +345,30 @@ verify_installations() {
     code --version || print_warning "VS Code version check failed (may require graphical session)"
     
     echo ""
+    
+    # Check PicoScope
+    if command -v picoscope &> /dev/null; then
+        echo "PicoScope: Installed"
+    fi
+    
+    echo ""
+    
+    # Check Chromium
+    if command -v chromium-browser &> /dev/null || command -v chromium &> /dev/null; then
+        echo "Chromium: Installed"
+        chromium-browser --version 2>/dev/null || chromium --version 2>/dev/null
+    fi
+    
+    echo ""
+    
+    # Check NVIDIA installation if available
+    if command -v nvidia-smi &> /dev/null; then
+        echo ""
+        echo "NVIDIA GPU status:"
+        nvidia-smi --query-gpu=name --format=csv,noheader
+    fi
+    
+    echo ""
 }
 
 # Main execution
@@ -221,9 +382,14 @@ main() {
     update_system
     install_git
     install_git_lfs
+    install_nvidia_drivers
+    install_cuda
+    install_nvidia_docker
     install_docker
     install_docker_compose
     install_vscode
+    install_picoscope
+    install_chromium
     configure_docker_permissions
     verify_installations
     

@@ -6,6 +6,9 @@ Automated setup script for Ubuntu that installs Docker Compose and VS Code with 
 
 - ✅ Automatic Git installation
 - ✅ Git LFS (Large File Storage) installation and configuration
+- ✅ NVIDIA GPU Driver installation (auto-detects GPU)
+- ✅ CUDA Toolkit installation
+- ✅ nvidia-docker integration for GPU containers
 - ✅ Automatic Docker installation from official Docker repository
 - ✅ Docker Compose standalone installation (latest version)
 - ✅ VS Code installation from Microsoft repository
@@ -51,6 +54,11 @@ chmod +x setup.sh
 - Git LFS (Large File Storage) for managing large binary files
 - Automatically initialized for the current user
 
+### NVIDIA GPU Support (if GPU detected)
+- NVIDIA GPU Drivers (version 535)
+- CUDA Toolkit (version 12.3)
+- nvidia-docker for GPU-accelerated containers
+
 ### Docker
 - Docker Engine (latest stable)
 - Docker CLI
@@ -70,10 +78,24 @@ chmod +x setup.sh
 
 After running the script, you may need to:
 
-1. **Log out and log back in** for Docker group permissions to take effect:
+1. **Reboot (for NVIDIA GPU drivers)** - If NVIDIA drivers were installed:
    ```bash
-   # Add your user to docker group (done automatically by script)
-   sudo usermod -aG docker $USER
+   sudo reboot
+   ```
+
+2. **Log out and log back in** for Docker group permissions to take effect:
+   ```bash
+   exit
+   # Log back in to your user account
+   ```
+   Or use:
+   ```bash
+   newgrp docker
+   ```
+
+3. **Reload shell configuration** (if CUDA was installed):
+   ```bash
+   source ~/.bashrc
    ```
 
 2. **Verify installations**:
@@ -83,12 +105,19 @@ After running the script, you may need to:
    code --version
    ```
 
-3. **Test Docker**:
+3. **Test NVIDIA GPU** (if installed):
+   ```bash
+   nvidia-smi
+   nvcc --version
+   docker run --rm --gpus all nvidia/cuda:12.3.0-runtime-ubuntu22.04 nvidia-smi
+   ```
+
+4. **Test Docker**:
    ```bash
    docker ps
    ```
 
-4. **Launch VS Code**:
+5. **Launch VS Code**:
    ```bash
    code
    ```
@@ -119,6 +148,18 @@ The script exits immediately on any error with a clear error message.
 - Other Ubuntu versions may work but are untested
 
 ## Troubleshooting
+
+### NVIDIA GPU not detected
+Make sure you have an NVIDIA GPU and the drivers are properly connected. Check:
+```bash
+lspci | grep -i nvidia
+```
+
+### nvidia-smi command not found
+Log out and log back in, or reboot the system for drivers to take effect:
+```bash
+nvidia-smi
+```
 
 ### Docker command not found
 Make sure you've logged out and logged back in after running the script.
