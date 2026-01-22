@@ -24,6 +24,13 @@ print_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
+# Source configuration file if it exists
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/config.sh" ]]; then
+    source "$SCRIPT_DIR/config.sh"
+    print_status "Loaded configuration from config.sh"
+fi
+
 # Check if running on Ubuntu
 check_ubuntu() {
     if [[ ! -f /etc/os-release ]]; then
@@ -193,11 +200,60 @@ install_chromium() {
     print_status "Chromium browser installed successfully"
 }
 
+# Install OpenSSH Server
+install_openssh_server() {
+    print_status "Installing OpenSSH Server..."
+    
+    if systemctl is-active --quiet ssh || systemctl is-active --quiet sshd; then
+        print_warning "OpenSSH Server is already installed and running"
+        return
+    fi
+    
+    sudo apt-get install -y openssh-server
+    
+    # Start and enable SSH service
+    sudo systemctl start ssh
+    sudo systemctl enable ssh
+    
+    # Display SSH status
+    print_status "OpenSSH Server installed successfully"
+    print_status "SSH service status:"
+    sudo systemctl status ssh --no-pager -l || true
+}
+
+# Install TeamViewer
+install_teamviewer() {
+    print_status "Installing TeamViewer..."
+    
+    if command -v teamviewer &> /dev/null; then
+        print_warning "TeamViewer is already installed"
+        return
+    fi
+    
+    # Download TeamViewer .deb package
+    print_status "Downloading TeamViewer..."
+    cd /tmp
+    wget -q https://download.teamviewer.com/download/linux/teamviewer_amd64.deb
+    
+    # Install TeamViewer
+    sudo apt-get install -y ./teamviewer_amd64.deb || {
+        # If dependencies are missing, fix them
+        sudo apt-get install -f -y
+        sudo apt-get install -y ./teamviewer_amd64.deb
+    }
+    
+    # Cleanup
+    rm -f teamviewer_amd64.deb
+    cd -
+    
+    print_status "TeamViewer installed successfully"
+}
+
 # Install nvidia-docker
 install_nvidia_docker() {
     print_status "Installing nvidia-docker..."
     
-    if command -v nvidia-docker &> /dev/null; then
+    if dpkg -l | grep -q nvidia-docker2; then
         print_warning "nvidia-docker is already installed"
         return
     fi
@@ -209,10 +265,10 @@ install_nvidia_docker() {
     
     # Add NVIDIA Docker repository
     distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
-        && curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+        && curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
         && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
             sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
     
     sudo apt-get update
     sudo apt-get install -y nvidia-docker2
@@ -361,6 +417,22 @@ verify_installations() {
     
     echo ""
     
+    # Check OpenSSH Server
+    if systemctl is-active --quiet ssh || systemctl is-active --quiet sshd; then
+        echo "OpenSSH Server: Installed and running"
+        ssh -V 2>&1 | head -n1
+    fi
+    
+    echo ""
+    
+    # Check TeamViewer
+    if command -v teamviewer &> /dev/null; then
+        echo "TeamViewer: Installed"
+        teamviewer --version 2>/dev/null || echo "TeamViewer version: $(teamviewer -v 2>&1 | head -n1)"
+    fi
+    
+    echo ""
+    
     # Check NVIDIA installation if available
     if command -v nvidia-smi &> /dev/null; then
         echo ""
@@ -379,18 +451,77 @@ main() {
     echo ""
     
     check_ubuntu
-    update_system
-    install_git
-    install_git_lfs
-    install_nvidia_drivers
-    install_cuda
-    install_nvidia_docker
-    install_docker
-    install_docker_compose
-    install_vscode
-    install_picoscope
-    install_chromium
-    configure_docker_permissions
+    
+    # Update system if configured
+    if [[ "${UPDATE_SYSTEM:-true}" == "true" ]]; then
+        update_system
+    fi
+    
+    # Install Git if configured
+    if [[ "${INSTALL_GIT:-true}" == "true" ]]; then
+        install_git
+    fi
+    
+    # Install Git LFS if configured
+    if [[ "${INSTALL_GIT_LFS:-true}" == "true" ]]; then
+        install_git_lfs
+    fi
+    
+    # Install NVIDIA drivers if configured
+    if [[ "${INSTALL_NVIDIA_DRIVERS:-false}" == "true" ]]; then
+        install_nvidia_drivers
+    fi
+    
+    # Install CUDA if configured
+    if [[ "${INSTALL_CUDA:-false}" == "true" ]]; then
+        install_cuda
+    fi
+    
+    # Install nvidia-docker if configured
+    if [[ "${INSTALL_NVIDIA_DOCKER:-true}" == "true" ]]; then
+        install_nvidia_docker
+    fi
+    
+    # Install Docker if configured
+    if [[ "${INSTALL_DOCKER:-true}" == "true" ]]; then
+        install_docker
+    fi
+    
+    # Install Docker Compose if configured
+    if [[ "${INSTALL_DOCKER_COMPOSE:-true}" == "true" ]]; then
+        install_docker_compose
+    fi
+    
+    # Install VS Code if configured
+    if [[ "${INSTALL_VSCODE:-true}" == "true" ]]; then
+        install_vscode
+    fi
+    
+    # Install PicoScope if configured
+    if [[ "${INSTALL_PICOSCOPE:-true}" == "true" ]]; then
+        install_picoscope
+    fi
+    
+    # Install Chromium if configured
+    if [[ "${INSTALL_CHROMIUM:-true}" == "true" ]]; then
+        install_chromium
+    fi
+    
+    # Install OpenSSH Server if configured
+    if [[ "${INSTALL_OPENSSH_SERVER:-true}" == "true" ]]; then
+        install_openssh_server
+    fi
+    
+    # Install TeamViewer if configured
+    if [[ "${INSTALL_TEAMVIEWER:-true}" == "true" ]]; then
+        install_teamviewer
+    fi
+    
+    # Configure Docker permissions if configured
+    if [[ "${DOCKER_ADD_USER_TO_GROUP:-true}" == "true" ]]; then
+        configure_docker_permissions
+    fi
+    
     verify_installations
     
     echo ""
