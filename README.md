@@ -1,3 +1,8 @@
+# mount repo on jetson
+'''
+sudo mount -t cifs //LAPTOP-M5R1LI43/Users/stefan/Documents/gitRepos/Unimog-Lane-Detection ~/Documents/gitRepos -o username=jetson,password=jetson,vers=3.0,sec=ntlmssp,uid=$(id -u),gid=$(id -g)
+'''
+
 # Ubuntu Setup Hub
 
 Automated setup script for Ubuntu that installs Docker Compose and VS Code with all dependencies.
