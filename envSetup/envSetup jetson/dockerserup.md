@@ -1,0 +1,1 @@
+docker push labeltool.heinrichstefan.eu/deploy:latest

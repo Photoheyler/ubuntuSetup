@@ -280,7 +280,7 @@ install_docker() {
 install_docker_compose() {
     print_status "Installing Docker Compose..."
     
-    if command -v docker-compose &> /dev/null; then
+    if command -v docker compose &> /dev/null; then
         print_warning "Docker Compose is already installed"
         return
     fi
