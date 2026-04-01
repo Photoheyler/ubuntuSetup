@@ -1,0 +1,27 @@
+services:
+  my-service:
+    build:
+      context: ../../
+      dockerfile: docker/deploy/dockerfile
+    image: deploy
+    container_name: Ph-deploy
+    restart: unless-stopped
+    volumes:
+      - ${HOME}/Documents/:/root/Documents/
+      - /etc/machine-id:/etc/machine-id:ro
+      - /var/run/dbus:/var/run/dbus:rw
+      - /run/NetworkManager:/run/NetworkManager:ro
+    privileged: true
+    devices:
+      - "/dev/bus:/dev/bus"
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    runtime: nvidia  # Ensure NVIDIA runtime is used
+    network_mode: "host"  # Use host network mode
