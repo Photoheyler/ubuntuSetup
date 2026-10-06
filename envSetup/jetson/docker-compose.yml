@@ -1,16 +1,14 @@
 services:
   my-service:
-    build:
-      context: ../../
-      dockerfile: docker/deploy/dockerfile
-    image: deploy
+    image: labeltool.heinrichstefan.eu/deploy:latest
     container_name: Ph-deploy
-    restart: unless-stopped
     volumes:
       - ${HOME}/Documents/:/root/Documents/
       - /etc/machine-id:/etc/machine-id:ro
       - /var/run/dbus:/var/run/dbus:rw
       - /run/NetworkManager:/run/NetworkManager:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     privileged: true
     devices:
       - "/dev/bus:/dev/bus"
@@ -23,5 +21,5 @@ services:
     tty: true
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-    runtime: nvidia  # Ensure NVIDIA runtime is used
-    network_mode: "host"  # Use host network mode
+    runtime: nvidia # Ensure NVIDIA runtime is used
+    network_mode: "host" # Use host network mode

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Update photoheyler
+Comment=Pull latest photoheyler Docker images
+Exec=bash -lc 'cd ~ && docker compose pull'
+Icon=view-refresh
+Terminal=true
+Categories=Utility;
